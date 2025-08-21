@@ -37,6 +37,7 @@ import io.github.koalaplot.core.util.rad
 import io.github.koalaplot.core.util.toDegrees
 import kotlin.math.abs
 import kotlin.math.asin
+import kotlin.math.max
 
 /**
  * A semicircle shaped pie chart slice implementation that can form full slices as well as slices
@@ -63,6 +64,7 @@ public fun PieSliceScope.ConcaveConvexSlice(
     hoverElement: @Composable () -> Unit = {},
     clickable: Boolean = false,
     antiAlias: Boolean = false,
+    gap: Float = 0.0f,
     onClick: () -> Unit = {}
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -70,8 +72,8 @@ public fun PieSliceScope.ConcaveConvexSlice(
     val targetOuterRadius by animateFloatAsState(outerRadius * if (isHovered) hoverExpandFactor else 1f)
 
     val shape = ConcaveConvexSlice(
-        pieSliceData.startAngle.toDegrees().value.toFloat(),
-        pieSliceData.angle.toDegrees().value.toFloat(),
+        pieSliceData.startAngle.toDegrees().value.toFloat() + gap,
+        pieSliceData.angle.toDegrees().value.toFloat() - 2 * gap,
         innerRadius,
         targetOuterRadius
     )
@@ -135,6 +137,8 @@ private class ConcaveConvexSlice(
         val innerRect = Rect(center, holeRadius)
         val outerRect = Rect(center, radius)
 
+        // Gap can lead to negative sweep angle which causes rendering issues
+        val sweepAngle = max(0F,angle)
         val innerCircleRadius = (radius - holeRadius) / 2F
         val innerCircleCenterRadius = (radius + holeRadius) / 2F
 
@@ -146,7 +150,7 @@ private class ConcaveConvexSlice(
             innerRect = innerRect,
             outerRect = outerRect,
             startAngle = startAngle,
-            sweepAngle = angle,
+            sweepAngle = sweepAngle,
             innerCircleCenterRadius = innerCircleCenterRadius,
             innerCircleDegrees = innerCircleDegrees,
             innerCircleRadius = innerCircleRadius,
@@ -156,14 +160,14 @@ private class ConcaveConvexSlice(
             innerRect = innerRect,
             outerRect = outerRect,
             startAngle = startAngle,
-            sweepAngle = angle,
+            sweepAngle = sweepAngle,
             innerCircleDegrees = innerCircleDegrees
         )
 
         val convexRingSlice = convexRingSlice(
             center = center,
             startAngle = startAngle,
-            sweepAngle = angle,
+            sweepAngle = sweepAngle,
             innerCircleCenterRadius = innerCircleCenterRadius,
             innerCircleDegrees = innerCircleDegrees,
             innerCircleRadius = innerCircleRadius,
