@@ -13,5 +13,3 @@ plugins {
 }
 
 rootProject.name = "koalaplot-core"
-
-includeBuild("convention-plugins")

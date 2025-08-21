@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.dokka)
     alias(libs.plugins.detekt)
-    id("convention.publication")
+    id("maven-publish")
 }
 
 repositories {
