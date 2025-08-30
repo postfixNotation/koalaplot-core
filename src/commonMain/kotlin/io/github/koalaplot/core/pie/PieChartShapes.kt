@@ -44,7 +44,7 @@ import kotlin.math.max
  * @param clickable If clicking should be enabled.
  * @param antiAlias Set to true if the slice should be drawn with anti-aliasing, false otherwise
  * @param gap Specifies the gap between slices. It is the angular distance, in degrees, between the
- * start/stop values the slice represents and where the slice is actually drawn.
+ * start/stop values the slice represents and where the slice is actually drawn. Cannot be negative.
  * @param onClick handler of clicks on the slice
  */
 @ExperimentalKoalaPlotApi
