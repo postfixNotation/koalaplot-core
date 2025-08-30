@@ -122,6 +122,11 @@ private class ConcaveConvexSlice(
 
         val innerRect = Rect(center, holeRadius)
         val outerRect = Rect(center, radius)
+        val layout = Layout(
+            center = center,
+            innerRect = innerRect,
+            outerRect = outerRect
+        )
 
         // Gap can lead to negative sweep angle which causes rendering issues
         val sweepAngle = max(0F, angle)
@@ -130,33 +135,31 @@ private class ConcaveConvexSlice(
 
         val innerCircleDegrees =
             asin(innerCircleRadius / innerCircleCenterRadius).rad.toDegrees().value.toFloat()
-
-        val concaveRingSlice = concaveRingSlice(
-            center = center,
-            innerRect = innerRect,
-            outerRect = outerRect,
-            startAngle = startAngle,
-            sweepAngle = sweepAngle,
+        val innerCircle = InnerCircle(
             innerCircleCenterRadius = innerCircleCenterRadius,
             innerCircleDegrees = innerCircleDegrees,
-            innerCircleRadius = innerCircleRadius,
+            innerCircleRadius = innerCircleRadius
+        )
+
+        val concaveRingSlice = concaveRingSlice(
+            layout = layout,
+            startAngle = startAngle,
+            sweepAngle = sweepAngle,
+            innerCircle = innerCircle
         )
 
         val ringSlice = ringSlice(
-            innerRect = innerRect,
-            outerRect = outerRect,
+            layout = layout,
             startAngle = startAngle,
             sweepAngle = sweepAngle,
-            innerCircleDegrees = innerCircleDegrees
+            innerCircle = innerCircle
         )
 
         val convexRingSlice = convexRingSlice(
-            center = center,
+            layout = layout,
             startAngle = startAngle,
             sweepAngle = sweepAngle,
-            innerCircleCenterRadius = innerCircleCenterRadius,
-            innerCircleDegrees = innerCircleDegrees,
-            innerCircleRadius = innerCircleRadius,
+            innerCircle = innerCircle
         )
 
         return Path().apply {
@@ -172,25 +175,19 @@ private const val InnerCircleSweepAngleDegrees = 180F
 /**
  * Path provider function for concave part of ring/donut slice.
  *
- * @param center The center of the pie chart.
- * @param innerRect Rect corresponding to pie chart's hole.
- * @param outerRect Rect corresponding to pie chart's outer radius.
+ * @param layout Specifies layout of pie chart.
  * @param startAngle The start angle of the slice.
  * @param sweepAngle The sweepAngle of the slice.
- * @param innerCircleCenterRadius Radius pointing to average of outer and inner radius.
- * @param innerCircleDegrees Angle from center which encompasses slice's inner circle.
- * @param innerCircleRadius Radius of slice's inner circle.
+ * @param innerCircle Specifies shape of concave/convex part of ring/donut slice.
  */
 private fun concaveRingSlice(
-    center: Offset,
-    innerRect: Rect,
-    outerRect: Rect,
+    layout: Layout,
     startAngle: Float,
     sweepAngle: Float,
-    innerCircleCenterRadius: Float,
-    innerCircleDegrees: Float,
-    innerCircleRadius: Float,
+    innerCircle: InnerCircle
 ): Path {
+    val (center, innerRect, outerRect) = layout
+    val (innerCircleCenterRadius, innerCircleDegrees, innerCircleRadius) = innerCircle
     val deltaSmallSweepAngle =
         if (sweepAngle < innerCircleDegrees) abs(sweepAngle - innerCircleDegrees) else 0F
 
@@ -235,19 +232,19 @@ private fun concaveRingSlice(
  * Path provider function for ring part of ring/donut slice.
  * Returns empty path if slice consists only of concave/convex pieces.
  *
- * @param innerRect Rect corresponding to pie chart's hole.
- * @param outerRect Rect corresponding to pie chart's outer radius.
+ * @param layout Specifies layout of pie chart.
  * @param startAngle The start angle of the slice.
  * @param sweepAngle The sweepAngle of the slice.
- * @param innerCircleDegrees Angle from center which encompasses slice's inner circle.
+ * @param innerCircle Specifies shape of concave/convex part of ring/donut slice.
  */
 private fun ringSlice(
-    innerRect: Rect,
-    outerRect: Rect,
+    layout: Layout,
     startAngle: Float,
     sweepAngle: Float,
-    innerCircleDegrees: Float
+    innerCircle: InnerCircle
 ): Path {
+    val (_, innerRect, outerRect) = layout
+    val (_, innerCircleDegrees, _) = innerCircle
     if (sweepAngle <= innerCircleDegrees) return Path()
 
     val toOuterStartAngleDegrees = startAngle + (innerCircleDegrees / 2F)
@@ -272,21 +269,19 @@ private fun ringSlice(
 /**
  * Path provider function for convex part of ring/donut slice.
  *
- * @param center The center of the pie chart.
+ * @param layout Specifies layout of pie chart.
  * @param startAngle The start angle of the slice.
  * @param sweepAngle The sweepAngle of the slice.
- * @param innerCircleCenterRadius Radius pointing to average of outer and inner radius.
- * @param innerCircleDegrees Angle from center which encompasses slice's inner circle.
- * @param innerCircleRadius Radius of slice's inner circle.
+ * @param innerCircle Specifies shape of concave/convex part of ring/donut slice.
  */
 private fun convexRingSlice(
-    center: Offset,
+    layout: Layout,
     startAngle: Float,
     sweepAngle: Float,
-    innerCircleCenterRadius: Float,
-    innerCircleDegrees: Float,
-    innerCircleRadius: Float,
+    innerCircle: InnerCircle
 ): Path {
+    val (center, _, _) = layout
+    val (innerCircleCenterRadius, innerCircleDegrees, innerCircleRadius) = innerCircle
     val toInnerCircleDegrees = (startAngle + sweepAngle - innerCircleDegrees / 2F)
 
     val convexSemicircle = Path().apply {
@@ -323,3 +318,29 @@ private fun convexRingSlice(
     }
     return convexSemicircle
 }
+
+/**
+ * Parameter class specifying layout of concave/convex shaped pie chart slices.
+ *
+ * @param center The center of the pie chart.
+ * @param innerRect Rect corresponding to pie chart's hole.
+ * @param outerRect Rect corresponding to pie chart's outer radius.
+ */
+private data class Layout(
+    val center: Offset,
+    val innerRect: Rect,
+    val outerRect: Rect
+)
+
+/**
+ * Parameter class providing inner circle values specifying shape of concave/convex part of ring/donut slice.
+ *
+ * @param innerCircleCenterRadius Radius pointing to average of outer and inner radius.
+ * @param innerCircleDegrees Angle from center which encompasses slice's inner circle.
+ * @param innerCircleRadius Radius of slice's inner circle.
+ */
+private data class InnerCircle(
+    val innerCircleCenterRadius: Float,
+    val innerCircleDegrees: Float,
+    val innerCircleRadius: Float,
+)
