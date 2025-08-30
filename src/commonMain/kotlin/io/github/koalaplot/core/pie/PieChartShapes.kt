@@ -58,6 +58,7 @@ public fun PieSliceScope.ConcaveConvexSlice(
     gap: Float = 0.0f,
     onClick: () -> Unit = {}
 ) {
+    require(gap >= 0F) { "gap cannot be negative" }
     val shape = ConcaveConvexSlice(
         pieSliceData.startAngle.toDegrees().value.toFloat() + gap,
         pieSliceData.angle.toDegrees().value.toFloat() - 2 * gap,
