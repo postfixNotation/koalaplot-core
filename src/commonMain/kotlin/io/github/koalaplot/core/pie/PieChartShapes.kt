@@ -5,16 +5,10 @@
 
 package io.github.koalaplot.core.pie
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
@@ -46,12 +40,10 @@ import kotlin.math.max
  * @receiver Provides drawing and interaction parameters for the slice scope
  * @param color The Color of the Slice
  * @param modifier The modifier to be applied to this item
- * @param hoverExpandFactor Amount the slice expands when hovered. 1 is no expansion, values greater
- * than 1 expand outward from the pie, and values less than 1 shrink. If expansion on hover is
- * desired, a good starting value is 1.05.
  * @param hoverElement Content to show when the mouse/pointer hovers over the slice
  * @param clickable If clicking should be enabled.
  * @param antiAlias Set to true if the slice should be drawn with anti-aliasing, false otherwise
+ * @param gap Specifies the gap between slices. It is the angular distance, in degrees, between the
  * start/stop values the slice represents and where the slice is actually drawn.
  * @param onClick handler of clicks on the slice
  */
@@ -60,22 +52,17 @@ import kotlin.math.max
 public fun PieSliceScope.ConcaveConvexSlice(
     color: Color,
     modifier: Modifier = Modifier,
-    hoverExpandFactor: Float = 1.0f,
     hoverElement: @Composable () -> Unit = {},
     clickable: Boolean = false,
     antiAlias: Boolean = false,
     gap: Float = 0.0f,
     onClick: () -> Unit = {}
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isHovered by interactionSource.collectIsHoveredAsState()
-    val targetOuterRadius by animateFloatAsState(outerRadius * if (isHovered) hoverExpandFactor else 1f)
-
     val shape = ConcaveConvexSlice(
         pieSliceData.startAngle.toDegrees().value.toFloat() + gap,
         pieSliceData.angle.toDegrees().value.toFloat() - 2 * gap,
         innerRadius,
-        targetOuterRadius
+        outerRadius
     )
 
     Box(
@@ -107,7 +94,6 @@ public fun PieSliceScope.ConcaveConvexSlice(
                 }
             )
             .hoverableElement(hoverElement)
-            .hoverable(interactionSource)
     ) {}
 }
 
@@ -181,6 +167,8 @@ private class ConcaveConvexSlice(
     }
 }
 
+private const val InnerCircleSweepAngleDegrees = 180F
+
 /**
  * Path provider function for concave part of ring/donut slice.
  *
@@ -226,7 +214,6 @@ private fun concaveRingSlice(
     }
 
     val toInnerCircleDegrees = startAngle - (innerCircleDegrees / 2F)
-    val innerCircleSweepAngleDegrees = 180F
 
     val convexSemicircle = Path().apply {
         addArc(
@@ -238,7 +225,7 @@ private fun concaveRingSlice(
                 radius = innerCircleRadius
             ),
             startAngleDegrees = toInnerCircleDegrees,
-            sweepAngleDegrees = innerCircleSweepAngleDegrees
+            sweepAngleDegrees = InnerCircleSweepAngleDegrees
         )
     }
     return slice - convexSemicircle
@@ -301,7 +288,6 @@ private fun convexRingSlice(
     innerCircleRadius: Float,
 ): Path {
     val toInnerCircleDegrees = (startAngle + sweepAngle - innerCircleDegrees / 2F)
-    val innerCircleSweepAngleDegrees = 180F
 
     val convexSemicircle = Path().apply {
         addArc(
@@ -313,7 +299,7 @@ private fun convexRingSlice(
                 radius = innerCircleRadius
             ),
             startAngleDegrees = toInnerCircleDegrees,
-            sweepAngleDegrees = innerCircleSweepAngleDegrees
+            sweepAngleDegrees = InnerCircleSweepAngleDegrees
         )
     }
 
@@ -329,7 +315,7 @@ private fun convexRingSlice(
                     radius = innerCircleRadius
                 ),
                 startAngleDegrees = toConcaveInnerCircleDegrees,
-                sweepAngleDegrees = innerCircleSweepAngleDegrees
+                sweepAngleDegrees = InnerCircleSweepAngleDegrees
             )
         }
 
