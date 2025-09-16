@@ -297,3 +297,18 @@ public fun <X, Y> solidBar(
 ): DefaultVerticalBarComposable<X, Y> = { series, index, value ->
     DefaultVerticalBar(SolidColor(color), shape = shape, border = border)
 }
+
+/**
+ * Factory function to create a Composable that emits a solid colored bar.
+ * The endings of each bar consist of a concave and a convex shape.
+ */
+public fun <X, Y> concaveConvexBar(
+    color: Color,
+    border: BorderStroke? = null,
+): DefaultVerticalBarComposable<X, Y> = { series, index, value ->
+    DefaultVerticalBar(
+        brush = SolidColor(color),
+        shape = ConcaveConvexShape(series, index, value),
+        border = border
+    )
+}
