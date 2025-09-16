@@ -11,7 +11,7 @@ detekt = { id = "io.gitlab.arturbosch.detekt", version = "1.23.8" }
 
 [versions]
 
-agp = "8.12.2"
+agp = "8.13.0"
 ##⬆= "8.7.3"
 ##⬆= "8.8.0-alpha01"
 ##⬆= "8.8.0-alpha02"
