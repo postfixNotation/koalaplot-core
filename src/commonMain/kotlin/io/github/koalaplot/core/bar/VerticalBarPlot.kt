@@ -106,7 +106,7 @@ public fun <X> XYGraphScope<X, Float>.VerticalBarPlot(
     xData: List<X>,
     yData: List<Float>,
     modifier: Modifier = Modifier,
-    bar: @Composable BarScope.(index: Int) -> Unit,
+    bar: VerticalBarComposable<VerticalBarPlotEntry<X, Float>>,
     barWidth: Float = 0.9f,
     animationSpec: AnimationSpec<Float> = KoalaPlotTheme.animationSpec
 ) {
@@ -137,7 +137,7 @@ public fun <X> XYGraphScope<X, Float>.VerticalBarPlot(
 public fun <X, Y, E : VerticalBarPlotEntry<X, Y>> XYGraphScope<X, Y>.VerticalBarPlot(
     data: List<E>,
     modifier: Modifier = Modifier,
-    bar: @Composable BarScope.(index: Int) -> Unit,
+    bar: VerticalBarComposable<VerticalBarPlotEntry<X, Y>>,
     barWidth: Float = 0.9f,
     animationSpec: AnimationSpec<Float> = KoalaPlotTheme.animationSpec
 ) {
@@ -149,8 +149,8 @@ public fun <X, Y, E : VerticalBarPlotEntry<X, Y>> XYGraphScope<X, Y>.VerticalBar
     GroupedVerticalBarPlot(
         dataAdapter,
         modifier = modifier,
-        bar = { dataIndex, _, _ ->
-            bar(dataIndex)
+        bar = { series, index, value ->
+            bar(series, index, GroupedEntryToEntryAdapter(value))
         },
         maxBarGroupWidth = barWidth,
         animationSpec = animationSpec
@@ -178,6 +178,15 @@ private class EntryToGroupedEntryAdapter<X, Y>(val entry: VerticalBarPlotEntry<X
         }
 }
 
+internal class GroupedEntryToEntryAdapter<X, Y>(
+    private val entry: VerticalBarPlotGroupedPointEntry<X, Y>
+) : VerticalBarPlotEntry<X, Y> {
+    override val x: X
+        get() = entry.x
+    override val y: VerticalBarPosition<Y>
+        get() = entry.y.first()
+}
+
 /**
  * Creates a Vertical Bar Plot.
  *
@@ -188,13 +197,13 @@ private class EntryToGroupedEntryAdapter<X, Y>(val entry: VerticalBarPlotEntry<X
  */
 @Composable
 public fun <X, Y> XYGraphScope<X, Y>.VerticalBarPlot(
-    defaultBar: @Composable BarScope.() -> Unit = solidBar(Color.Blue),
+    defaultBar: VerticalBarComposable<VerticalBarPlotEntry<X, Y>> = solidBar(Color.Blue),
     modifier: Modifier = Modifier,
     barWidth: Float = 0.9f,
     animationSpec: AnimationSpec<Float> = KoalaPlotTheme.animationSpec,
     content: VerticalBarPlotScope<X, Y>.() -> Unit
 ) {
-    val scope = remember(content, defaultBar) { VerticalBarPlotScopeImpl<X, Y>(defaultBar) }
+    val scope = remember(content, defaultBar) { VerticalBarPlotScopeImpl(defaultBar) }
     val data = remember(scope) {
         scope.content()
         scope.data.values.toList()
@@ -203,8 +212,8 @@ public fun <X, Y> XYGraphScope<X, Y>.VerticalBarPlot(
     VerticalBarPlot(
         data.map { it.first },
         modifier,
-        {
-            data[it].second.invoke(this)
+        { series, index, value ->
+            data[index].second.invoke(this, series, index, value)
         },
         barWidth,
         animationSpec
@@ -220,15 +229,15 @@ public interface VerticalBarPlotScope<X, Y> {
      * [yMin] to [yMax]. An optional [bar] can be provided to customize the Composable used to
      * generate the bar for this specific item.
      */
-    public fun item(x: X, yMin: Y, yMax: Y, bar: (@Composable BarScope.() -> Unit)? = null)
+    public fun item(x: X, yMin: Y, yMax: Y, bar: (VerticalBarComposable<VerticalBarPlotEntry<X, Y>>)? = null)
 }
 
-internal class VerticalBarPlotScopeImpl<X, Y>(private val defaultBar: @Composable BarScope.() -> Unit) :
+internal class VerticalBarPlotScopeImpl<X, Y>(private val defaultBar: VerticalBarComposable<VerticalBarPlotEntry<X, Y>>) :
     VerticalBarPlotScope<X, Y> {
-    val data: MutableMap<X, Pair<VerticalBarPlotEntry<X, Y>, @Composable BarScope.() -> Unit>> =
+    val data: MutableMap<X, Pair<VerticalBarPlotEntry<X, Y>, VerticalBarComposable<VerticalBarPlotEntry<X, Y>>>> =
         mutableMapOf()
 
-    override fun item(x: X, yMin: Y, yMax: Y, bar: (@Composable BarScope.() -> Unit)?) {
+    override fun item(x: X, yMin: Y, yMax: Y, bar: (VerticalBarComposable<VerticalBarPlotEntry<X, Y>>)?) {
         data[x] = Pair(verticalBarPlotEntry(x, yMin, yMax), bar ?: defaultBar)
     }
 }
@@ -273,10 +282,10 @@ public fun BarScope.DefaultVerticalBar(
 /**
  * Factory function to create a Composable that emits a solid colored bar.
  */
-public fun solidBar(
+public fun <X, Y> solidBar(
     color: Color,
     shape: Shape = RectangleShape,
     border: BorderStroke? = null,
-): @Composable BarScope.() -> Unit = {
+): VerticalBarComposable<VerticalBarPlotEntry<X, Y>> = { series, index, value ->
     DefaultVerticalBar(SolidColor(color), shape = shape, border = border)
 }
