@@ -294,7 +294,7 @@ public fun <X, Y> solidBar(
     color: Color,
     shape: Shape = RectangleShape,
     border: BorderStroke? = null,
-): DefaultVerticalBarComposable<X, Y> = { series, index, value ->
+): DefaultVerticalBarComposable<X, Y> = { _, _, _ ->
     DefaultVerticalBar(SolidColor(color), shape = shape, border = border)
 }
 
