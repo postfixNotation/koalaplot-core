@@ -302,13 +302,13 @@ public fun <X, Y> solidBar(
  * Factory function to create a Composable that emits a solid colored bar.
  * The endings of each bar consist of a concave and a convex shape.
  */
-public fun <X, Y> concaveConvexBar(
+public fun <X> XYGraphScope<X, Float>.concaveConvexBar(
     color: Color,
     border: BorderStroke? = null,
-): DefaultVerticalBarComposable<X, Y> = { series, index, value ->
+): DefaultVerticalBarComposable<X, Float> = { _, index, value ->
     DefaultVerticalBar(
         brush = SolidColor(color),
-        shape = ConcaveConvexShape(series, index, value),
+        shape = ConcaveConvexShape(this@concaveConvexBar, value),
         border = border
     )
 }

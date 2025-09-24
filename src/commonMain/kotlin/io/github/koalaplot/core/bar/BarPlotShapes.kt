@@ -80,7 +80,9 @@ public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
         val yMinOffset = yAxisModel.computeOffset(value.y.yMin).coerceIn(0f, 1f)
         val yMaxOffset = yAxisModel.computeOffset(value.y.yMax).coerceIn(0f, 1f)
 
-        // TODO: Division by zero
+        // Prevent division by zero
+        if (yMaxOffset == yMinOffset) return Path().let(Outline::Generic)
+
         val heightOffsetRatio = size.height / (yMaxOffset - yMinOffset)
         val offsetToHeight = { offset: Float -> offset * heightOffsetRatio }
 
