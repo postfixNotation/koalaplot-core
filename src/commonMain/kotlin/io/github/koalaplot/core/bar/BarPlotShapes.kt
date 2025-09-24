@@ -65,7 +65,6 @@ public val PlaneConvexShape: Shape = object : Shape {
 @Stable
 public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
     private val xyGraphScope: XYGraphScope<X, Float>,
-    private val index: Int,
     private val value: E
 ) : Shape, XYGraphScope<X, Float> by xyGraphScope {
     override fun createOutline(
@@ -78,107 +77,60 @@ public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
         val arcRadius = shapeWidth / 2
 
         return Path().apply {
-            val rectHeight = max((shapeHeight - arcRadius), 0F)
-            val heightRadiusOffset = max((arcRadius - shapeHeight), 0F)
-            val heightRadiusOffsetDegrees =
-                asin(heightRadiusOffset / arcRadius).rad.toDegrees().value.toFloat()
+            val yZeroOffset = yAxisModel.computeOffset(0F).coerceIn(0F, 1F)
+            val yMinOffset = yAxisModel.computeOffset(value.y.yMin).coerceIn(0f, 1f)
+            val yMaxOffset = yAxisModel.computeOffset(value.y.yMax).coerceIn(0f, 1f)
 
-            if (index == 0) {
-                // TOP ARC
+            // TODO: Division by zero
+            val heightOffsetRatio = size.height / (yMaxOffset - yMinOffset)
+            val offsetToHeight = { offset: Float -> offset * heightOffsetRatio }
+
+            val yMinZeroOffset = yMinOffset - yZeroOffset
+            val yMaxZeroOffset = yMaxOffset - yZeroOffset
+
+            val yMinZeroHeight = offsetToHeight(yMinZeroOffset)
+            val yMaxZeroHeight = offsetToHeight(yMaxZeroOffset)
+
+            val yMinZeroArcHeight = max((arcRadius - yMinZeroHeight), 0F)
+            val yMaxZeroArcHeight = max((arcRadius - yMaxZeroHeight), 0F)
+
+            val yMaxZeroArcHeightDegrees =
+                asin(yMaxZeroArcHeight / arcRadius).rad.toDegrees().value.toFloat()
+
+            (Path().apply {
                 addArc(
                     oval = Size(shapeWidth, shapeWidth).toRect(),
-                    startAngleDegrees = 180F + heightRadiusOffsetDegrees,
-                    sweepAngleDegrees = 180F - 2 * heightRadiusOffsetDegrees
+                    startAngleDegrees = 180F + yMaxZeroArcHeightDegrees,
+                    sweepAngleDegrees = 180F - 2 * yMaxZeroArcHeightDegrees
                 )
-                // VALUE RECT
+            } - Path().apply {
+                addArc(
+                    oval = Rect(
+                        offset = Offset(0F, shapeHeight),
+                        size = Size(shapeWidth, shapeWidth)
+                    ),
+                    startAngleDegrees = 180F,
+                    sweepAngleDegrees = 180F
+                )
+            }).let(::addPath)
+
+            (Path().apply {
                 addRect(
                     rect = Rect(
                         offset = Offset(0F, arcRadius),
-                        size = Size(shapeWidth, rectHeight)
+                        size = Size(shapeWidth, max(shapeHeight - yMinZeroArcHeight, 0F))
                     )
                 )
-            } else {
-                val yZeroOffset = yAxisModel.computeOffset(0F).coerceIn(0F, 1F)
-                val yMinOffset = yAxisModel.computeOffset(value.y.yMin).coerceIn(0f, 1f)
-                val yMaxOffset = yAxisModel.computeOffset(value.y.yMax).coerceIn(0f, 1f)
-
-                // TODO: Division by zero
-                val heightOffsetRatio = size.height / (yMaxOffset - yMinOffset)
-                val offsetToHeight = { offset: Float -> offset * heightOffsetRatio }
-
-                val yMinZeroOffset = yMinOffset - yZeroOffset
-                val yMaxZeroOffset = yMaxOffset - yZeroOffset
-
-                val yMinZeroHeight = offsetToHeight(yMinZeroOffset)
-                val yMaxZeroHeight = offsetToHeight(yMaxZeroOffset)
-
-                val yMinZeroArcHeight = max((arcRadius - yMinZeroHeight), 0F)
-                val yMaxZeroArcHeight = max((arcRadius - yMaxZeroHeight), 0F)
-                val yMinZeroArcHeightDegrees =
-                    asin(yMinZeroArcHeight / arcRadius).rad.toDegrees().value.toFloat()
-                val yMaxZeroArcHeightDegrees =
-                    asin(yMaxZeroArcHeight / arcRadius).rad.toDegrees().value.toFloat()
-
-                if (shapeHeight >= arcRadius) {
-                    // TOP ARC
-                    addArc(
-                        oval = Size(shapeWidth, shapeWidth).toRect(),
-                        startAngleDegrees = 180F,
-                        sweepAngleDegrees = 180F
-                    )
-                    // VALUE RECT
-                    addRect(
-                        rect = Rect(
-                            offset = Offset(0F, arcRadius),
-                            size = Size(shapeWidth, max((shapeHeight - yMinZeroArcHeight), 0F))
-                        )
-                    )
-                    // BOTTOM ARC
-                    addArc(
-                        oval = Rect(
-                            offset = Offset(0F, shapeHeight),
-                            size = Size(shapeWidth, shapeWidth)
-                        ),
-                        startAngleDegrees = 180F + yMinZeroArcHeightDegrees,
-                        sweepAngleDegrees = 180F - 2 * yMinZeroArcHeightDegrees
-                    )
-                } else {
-                    (Path().apply {
-                        addArc(
-                            oval = Size(shapeWidth, shapeWidth).toRect(),
-                            startAngleDegrees = 180F + yMaxZeroArcHeightDegrees,
-                            sweepAngleDegrees = 180F - 2 * yMaxZeroArcHeightDegrees
-                        )
-                    } - Path().apply {
-                        addArc(
-                            oval = Rect(
-                                offset = Offset(0F, shapeHeight),
-                                size = Size(shapeWidth, shapeWidth)
-                            ),
-                            startAngleDegrees = 180F,
-                            sweepAngleDegrees = 180F
-                        )
-                    }).let(::addPath)
-
-                    (Path().apply {
-                        addRect(
-                            rect = Rect(
-                                offset = Offset(0F, arcRadius),
-                                size = Size(shapeWidth, max(shapeHeight - yMinZeroArcHeight, 0F))
-                            )
-                        )
-                    } - Path().apply {
-                        addArc(
-                            oval = Rect(
-                                offset = Offset(0F, shapeHeight),
-                                size = Size(shapeWidth, shapeWidth)
-                            ),
-                            startAngleDegrees = 180F,
-                            sweepAngleDegrees = 180F
-                        )
-                    }).let(::addPath)
-                }
-            }
+            } - Path().apply {
+                addArc(
+                    oval = Rect(
+                        offset = Offset(0F, shapeHeight),
+                        size = Size(shapeWidth, shapeWidth)
+                    ),
+                    startAngleDegrees = 180F,
+                    sweepAngleDegrees = 180F
+                )
+            }).let(::addPath)
         }.let(Outline::Generic)
     }
 }
