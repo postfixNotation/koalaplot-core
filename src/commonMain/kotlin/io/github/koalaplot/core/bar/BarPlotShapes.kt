@@ -61,6 +61,9 @@ public val PlaneConvexShape: Shape = object : Shape {
 /**
  * Rectangle shape with concave/convex shaped sides.
  * Useful for Single Vertical Bar and Stacked Bars Plot rendering.
+ *
+ * @param xyGraphScope Provides access to [yAxisModel] and acts as an implementation of [XYGraphScope].
+ * @param value The [VerticalBarPlotEntry] that defines the cutouts for the [ConcaveConvexShape].
  */
 @Stable
 public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
