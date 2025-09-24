@@ -76,27 +76,27 @@ public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
         val shapeHeight = size.height
         val arcRadius = shapeWidth / 2
 
+        val yZeroOffset = yAxisModel.computeOffset(0F).coerceIn(0F, 1F)
+        val yMinOffset = yAxisModel.computeOffset(value.y.yMin).coerceIn(0f, 1f)
+        val yMaxOffset = yAxisModel.computeOffset(value.y.yMax).coerceIn(0f, 1f)
+
+        // TODO: Division by zero
+        val heightOffsetRatio = size.height / (yMaxOffset - yMinOffset)
+        val offsetToHeight = { offset: Float -> offset * heightOffsetRatio }
+
+        val yMinZeroOffset = yMinOffset - yZeroOffset
+        val yMaxZeroOffset = yMaxOffset - yZeroOffset
+
+        val yMinZeroHeight = offsetToHeight(yMinZeroOffset)
+        val yMaxZeroHeight = offsetToHeight(yMaxZeroOffset)
+
+        val yMinZeroArcHeight = max((arcRadius - yMinZeroHeight), 0F)
+        val yMaxZeroArcHeight = max((arcRadius - yMaxZeroHeight), 0F)
+
+        val yMaxZeroArcHeightDegrees =
+            asin(yMaxZeroArcHeight / arcRadius).rad.toDegrees().value.toFloat()
+
         return Path().apply {
-            val yZeroOffset = yAxisModel.computeOffset(0F).coerceIn(0F, 1F)
-            val yMinOffset = yAxisModel.computeOffset(value.y.yMin).coerceIn(0f, 1f)
-            val yMaxOffset = yAxisModel.computeOffset(value.y.yMax).coerceIn(0f, 1f)
-
-            // TODO: Division by zero
-            val heightOffsetRatio = size.height / (yMaxOffset - yMinOffset)
-            val offsetToHeight = { offset: Float -> offset * heightOffsetRatio }
-
-            val yMinZeroOffset = yMinOffset - yZeroOffset
-            val yMaxZeroOffset = yMaxOffset - yZeroOffset
-
-            val yMinZeroHeight = offsetToHeight(yMinZeroOffset)
-            val yMaxZeroHeight = offsetToHeight(yMaxZeroOffset)
-
-            val yMinZeroArcHeight = max((arcRadius - yMinZeroHeight), 0F)
-            val yMaxZeroArcHeight = max((arcRadius - yMaxZeroHeight), 0F)
-
-            val yMaxZeroArcHeightDegrees =
-                asin(yMaxZeroArcHeight / arcRadius).rad.toDegrees().value.toFloat()
-
             (Path().apply {
                 addArc(
                     oval = Size(shapeWidth, shapeWidth).toRect(),
