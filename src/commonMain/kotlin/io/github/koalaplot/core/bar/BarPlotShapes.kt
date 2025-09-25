@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
@@ -79,6 +80,8 @@ public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
         val shapeHeight = size.height
         val arcRadius = shapeWidth / 2
 
+        // Rendering negative values
+        val isInverted = value.y.yMax < value.y.yMin
         val yZeroOffset = yAxisModel.computeOffset(0F).coerceIn(0F, 1F)
         val yMinOffset = yAxisModel.computeOffset(value.y.yMin).coerceIn(0f, 1f)
         val yMaxOffset = yAxisModel.computeOffset(value.y.yMax).coerceIn(0f, 1f)
@@ -136,6 +139,16 @@ public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
                     sweepAngleDegrees = 180F
                 )
             }).let(::addPath)
+            // Rendering bar in negative direction
+            if (isInverted) {
+                Matrix().apply {
+                    resetToPivotedTransform(
+                        pivotX = shapeWidth / 2F,
+                        pivotY = shapeHeight / 2F,
+                        rotationZ = 180F
+                    )
+                }.let(::transform)
+            }
         }.let(Outline::Generic)
     }
 }
