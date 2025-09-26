@@ -312,3 +312,19 @@ public fun <X> XYGraphScope<X, Float>.concaveConvexBar(
         border = border
     )
 }
+
+/**
+ * Factory function to create a Composable that emits a solid colored bar.
+ * The endings of each bar consist of a concave and a convex shape.
+ * There's an additional convex cutout at the bottom of the bar.
+ */
+public fun <X> XYGraphScope<X, Float>.convexConcaveConvexBar(
+    color: Color,
+    border: BorderStroke? = null,
+): DefaultVerticalBarComposable<X, Float> = { _, index, value ->
+    DefaultVerticalBar(
+        brush = SolidColor(color),
+        shape = ConvexConcaveConvexShape(this@convexConcaveConvexBar, value),
+        border = border
+    )
+}
