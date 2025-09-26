@@ -305,7 +305,7 @@ public fun <X, Y> solidBar(
 public fun <X> XYGraphScope<X, Float>.concaveConvexBar(
     color: Color,
     border: BorderStroke? = null,
-): DefaultVerticalBarComposable<X, Float> = { _, index, value ->
+): DefaultVerticalBarComposable<X, Float> = { _, _, value ->
     DefaultVerticalBar(
         brush = SolidColor(color),
         shape = ConcaveConvexShape(this@concaveConvexBar, value),
@@ -321,7 +321,7 @@ public fun <X> XYGraphScope<X, Float>.concaveConvexBar(
 public fun <X> XYGraphScope<X, Float>.convexConcaveConvexBar(
     color: Color,
     border: BorderStroke? = null,
-): DefaultVerticalBarComposable<X, Float> = { _, index, value ->
+): DefaultVerticalBarComposable<X, Float> = { _, _, value ->
     DefaultVerticalBar(
         brush = SolidColor(color),
         shape = ConvexConcaveConvexShape(this@convexConcaveConvexBar, value),
