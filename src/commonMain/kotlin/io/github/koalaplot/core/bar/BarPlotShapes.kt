@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2025 Peter Artur Getek.
- * All rights reserved.
- */
-
 package io.github.koalaplot.core.bar
 
 import androidx.compose.runtime.Stable
@@ -28,7 +23,7 @@ import kotlin.math.max
  * Use in Stacked Bars is discouraged.
  */
 @Stable
-public val PlaneConvexShape: Shape = object : Shape {
+private val PlaneConvexShape: Shape = object : Shape {
     override fun createOutline(
         size: Size,
         layoutDirection: LayoutDirection,
@@ -60,6 +55,49 @@ public val PlaneConvexShape: Shape = object : Shape {
 }
 
 /**
+ * Rectangle shape with convex shaped sides.
+ * Useful for Single Vertical Bar Plot rendering.
+ * Use in Stacked Bars is discouraged.
+ */
+@Stable
+private val BiConvexShape: Shape = object : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val outline = PlaneConvexShape
+            .createOutline(size, layoutDirection, density)
+        outline as Outline.Generic
+
+        val shapeWidth = size.width
+        val shapeHeight = size.height
+        val arcRadius = shapeWidth / 2
+
+        val cutoutRect = Path().apply {
+            addRect(
+                rect = Rect(
+                    offset = Offset(0F, shapeHeight - arcRadius),
+                    size = Size(shapeWidth, shapeWidth)
+                )
+            )
+        }
+        val cutoutArc = Path().apply {
+            addArc(
+                oval = Rect(
+                    offset = Offset(0F, shapeHeight - shapeWidth),
+                    size = Size(shapeWidth, shapeWidth)
+                ),
+                startAngleDegrees = 0F,
+                sweepAngleDegrees = 180F
+            )
+        }
+        val cutout = (cutoutRect - cutoutArc)
+        return (outline.path - cutout).let(Outline::Generic)
+    }
+}
+
+/**
  * Rectangle shape with concave/convex shaped sides.
  * Useful for Single Vertical Bar and Stacked Bars Plot rendering.
  *
@@ -69,6 +107,7 @@ public val PlaneConvexShape: Shape = object : Shape {
 @Stable
 public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
     private val xyGraphScope: XYGraphScope<X, Float>,
+    private val index: Int,
     private val value: E
 ) : Shape, XYGraphScope<X, Float> by xyGraphScope {
     override fun createOutline(
@@ -82,6 +121,27 @@ public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
 
         // Rendering negative values
         val isInverted = value.y.yMax < value.y.yMin
+        // Required for proper bar rendering in waterfall charts
+        if (index == 0) {
+            val outline = PlaneConvexShape
+                .createOutline(size, layoutDirection, density)
+            outline as Outline.Generic
+
+            outline.path.apply {
+                // Rendering bar in negative direction
+                if (isInverted) {
+                    Matrix().apply {
+                        resetToPivotedTransform(
+                            pivotX = shapeWidth / 2F,
+                            pivotY = shapeHeight / 2F,
+                            rotationZ = 180F
+                        )
+                    }.let(::transform)
+                }
+            }
+            return outline
+        }
+
         val yZeroOffset = yAxisModel.computeOffset(0F).coerceIn(0F, 1F)
         val yMinOffset = yAxisModel.computeOffset(value.y.yMin).coerceIn(0f, 1f)
         val yMaxOffset = yAxisModel.computeOffset(value.y.yMax).coerceIn(0f, 1f)
@@ -154,7 +214,7 @@ public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
 }
 
 /**
- * Rectangle shape with concave/convex shaped sides.
+ * Rectangle shape with concave/convex shaped sides and additional convex cutout at the bottom.
  * Useful for Single Vertical Bar and Stacked Bars Plot rendering.
  *
  * Primary constructor:
@@ -168,14 +228,17 @@ public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
 @Stable
 public class ConvexConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>> private constructor(
     private val concaveConvexShape: ConcaveConvexShape<X, E>,
+    private val index: Int,
     private val value: E
 ) : Shape, XYGraphScope<X, Float> by concaveConvexShape {
 
     public constructor(
         xyGraphScope: XYGraphScope<X, Float>,
+        index: Int,
         value: E
     ) : this(
-        ConcaveConvexShape(xyGraphScope, value),
+        ConcaveConvexShape(xyGraphScope, index, value),
+        index,
         value
     )
 
@@ -190,6 +253,27 @@ public class ConvexConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>> pri
 
         // Rendering negative values
         val isInverted = value.y.yMax < value.y.yMin
+        // Required for proper bar rendering in waterfall charts
+        if (index == 0) {
+            val outline = BiConvexShape
+                .createOutline(size, layoutDirection, density)
+            outline as Outline.Generic
+
+            outline.path.apply {
+                // Rendering bar in negative direction
+                if (isInverted) {
+                    Matrix().apply {
+                        resetToPivotedTransform(
+                            pivotX = shapeWidth / 2F,
+                            pivotY = shapeHeight / 2F,
+                            rotationZ = 180F
+                        )
+                    }.let(::transform)
+                }
+            }
+            return outline
+        }
+
         val yZeroOffset = yAxisModel.computeOffset(0F).coerceIn(0F, 1F)
         val yMinOffset = yAxisModel.computeOffset(value.y.yMin).coerceIn(0f, 1f)
         val yMaxOffset = yAxisModel.computeOffset(value.y.yMax).coerceIn(0f, 1f)
