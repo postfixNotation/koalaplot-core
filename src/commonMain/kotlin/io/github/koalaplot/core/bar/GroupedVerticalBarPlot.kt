@@ -332,11 +332,11 @@ public fun <X, Y> XYGraphScope<X, Y>.GroupedVerticalBarPlot(
         modifier = modifier,
         maxBarGroupWidth = maxBarGroupWidth,
         startAnimationUseCase =
-            StartAnimationUseCase(
-                executionType = StartAnimationUseCase.ExecutionType.Default,
-                /* chart animation */
-                animationSpec,
-            ),
+        StartAnimationUseCase(
+            executionType = StartAnimationUseCase.ExecutionType.Default,
+            /* chart animation */
+            animationSpec,
+        ),
         content = content
     )
 }

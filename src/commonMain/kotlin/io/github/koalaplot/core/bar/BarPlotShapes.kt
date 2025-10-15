@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import io.github.koalaplot.core.util.rad
 import io.github.koalaplot.core.util.toDegrees
+import io.github.koalaplot.core.xygraph.AxisModel
 import io.github.koalaplot.core.xygraph.XYGraphScope
 import kotlin.math.asin
 import kotlin.math.max
@@ -66,9 +67,7 @@ private val BiConvexShape: Shape = object : Shape {
         layoutDirection: LayoutDirection,
         density: Density
     ): Outline {
-        val outline = PlaneConvexShape
-            .createOutline(size, layoutDirection, density)
-        outline as Outline.Generic
+        val outline = PlaneConvexShape.createOutline(size, layoutDirection, density) as Outline.Generic
 
         val shapeWidth = size.width
         val shapeHeight = size.height
@@ -123,28 +122,18 @@ public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
         val isInverted = value.y.yMax < value.y.yMin
         // Required for proper bar rendering in waterfall charts
         if (index == 0) {
-            val outline = PlaneConvexShape
-                .createOutline(size, layoutDirection, density)
-            outline as Outline.Generic
+            val outline = PlaneConvexShape.createOutline(size, layoutDirection, density) as Outline.Generic
 
             outline.path.apply {
                 // Rendering bar in negative direction
                 if (isInverted) {
-                    Matrix().apply {
-                        resetToPivotedTransform(
-                            pivotX = shapeWidth / 2F,
-                            pivotY = shapeHeight / 2F,
-                            rotationZ = 180F
-                        )
-                    }.let(::transform)
+                    inverted(pivotX = shapeWidth / 2F, pivotY = shapeHeight / 2F)
                 }
             }
             return outline
         }
 
-        val yZeroOffset = yAxisModel.computeOffset(0F).coerceIn(0F, 1F)
-        val yMinOffset = yAxisModel.computeOffset(value.y.yMin).coerceIn(0f, 1f)
-        val yMaxOffset = yAxisModel.computeOffset(value.y.yMax).coerceIn(0f, 1f)
+        val (yZeroOffset, yMinOffset, yMaxOffset) = yAxisModel.yOffsets(value.y.yMin, value.y.yMax)
 
         // Prevent division by zero
         if (yMaxOffset == yMinOffset) return Path().let(Outline::Generic)
@@ -165,49 +154,47 @@ public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
             asin(yMaxZeroArcHeight / arcRadius).rad.toDegrees().value.toFloat()
 
         return Path().apply {
-            (Path().apply {
-                addArc(
-                    oval = Size(shapeWidth, shapeWidth).toRect(),
-                    startAngleDegrees = 180F + yMaxZeroArcHeightDegrees,
-                    sweepAngleDegrees = 180F - 2 * yMaxZeroArcHeightDegrees
-                )
-            } - Path().apply {
-                addArc(
-                    oval = Rect(
-                        offset = Offset(0F, shapeHeight),
-                        size = Size(shapeWidth, shapeWidth)
-                    ),
-                    startAngleDegrees = 180F,
-                    sweepAngleDegrees = 180F
-                )
-            }).let(::addPath)
-
-            (Path().apply {
-                addRect(
-                    rect = Rect(
-                        offset = Offset(0F, arcRadius),
-                        size = Size(shapeWidth, max(shapeHeight - yMinZeroArcHeight, 0F))
+            (
+                Path().apply {
+                    addArc(
+                        oval = Size(shapeWidth, shapeWidth).toRect(),
+                        startAngleDegrees = 180F + yMaxZeroArcHeightDegrees,
+                        sweepAngleDegrees = 180F - 2 * yMaxZeroArcHeightDegrees
                     )
-                )
-            } - Path().apply {
-                addArc(
-                    oval = Rect(
-                        offset = Offset(0F, shapeHeight),
-                        size = Size(shapeWidth, shapeWidth)
-                    ),
-                    startAngleDegrees = 180F,
-                    sweepAngleDegrees = 180F
-                )
-            }).let(::addPath)
+                } - Path().apply {
+                    addArc(
+                        oval = Rect(
+                            offset = Offset(0F, shapeHeight),
+                            size = Size(shapeWidth, shapeWidth)
+                        ),
+                        startAngleDegrees = 180F,
+                        sweepAngleDegrees = 180F
+                    )
+                }
+                ).let(::addPath)
+
+            (
+                Path().apply {
+                    addRect(
+                        rect = Rect(
+                            offset = Offset(0F, arcRadius),
+                            size = Size(shapeWidth, max(shapeHeight - yMinZeroArcHeight, 0F))
+                        )
+                    )
+                } - Path().apply {
+                    addArc(
+                        oval = Rect(
+                            offset = Offset(0F, shapeHeight),
+                            size = Size(shapeWidth, shapeWidth)
+                        ),
+                        startAngleDegrees = 180F,
+                        sweepAngleDegrees = 180F
+                    )
+                }
+                ).let(::addPath)
             // Rendering bar in negative direction
             if (isInverted) {
-                Matrix().apply {
-                    resetToPivotedTransform(
-                        pivotX = shapeWidth / 2F,
-                        pivotY = shapeHeight / 2F,
-                        rotationZ = 180F
-                    )
-                }.let(::transform)
+                inverted(pivotX = shapeWidth / 2F, pivotY = shapeHeight / 2F)
             }
         }.let(Outline::Generic)
     }
@@ -255,28 +242,18 @@ public class ConvexConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>> pri
         val isInverted = value.y.yMax < value.y.yMin
         // Required for proper bar rendering in waterfall charts
         if (index == 0) {
-            val outline = BiConvexShape
-                .createOutline(size, layoutDirection, density)
-            outline as Outline.Generic
+            val outline = BiConvexShape.createOutline(size, layoutDirection, density) as Outline.Generic
 
             outline.path.apply {
                 // Rendering bar in negative direction
                 if (isInverted) {
-                    Matrix().apply {
-                        resetToPivotedTransform(
-                            pivotX = shapeWidth / 2F,
-                            pivotY = shapeHeight / 2F,
-                            rotationZ = 180F
-                        )
-                    }.let(::transform)
+                    inverted(pivotX = shapeWidth / 2F, pivotY = shapeHeight / 2F)
                 }
             }
             return outline
         }
 
-        val yZeroOffset = yAxisModel.computeOffset(0F).coerceIn(0F, 1F)
-        val yMinOffset = yAxisModel.computeOffset(value.y.yMin).coerceIn(0f, 1f)
-        val yMaxOffset = yAxisModel.computeOffset(value.y.yMax).coerceIn(0f, 1f)
+        val (yZeroOffset, yMinOffset, yMaxOffset) = yAxisModel.yOffsets(value.y.yMin, value.y.yMax)
 
         // Prevent division by zero
         if (yMaxOffset == yMinOffset) return Path().let(Outline::Generic)
@@ -287,9 +264,7 @@ public class ConvexConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>> pri
         val yMaxZeroOffset = yMaxOffset - yZeroOffset
         val yMaxZeroHeight = offsetToHeight(yMaxZeroOffset)
 
-        val outline = concaveConvexShape
-            .createOutline(size, layoutDirection, density)
-        outline as Outline.Generic
+        val outline = concaveConvexShape.createOutline(size, layoutDirection, density) as Outline.Generic
 
         val cutoutRect = Path().apply {
             addRect(
@@ -312,15 +287,37 @@ public class ConvexConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>> pri
         val cutout = (cutoutRect - cutoutArc).apply {
             // Rendering bar in negative direction
             if (isInverted) {
-                Matrix().apply {
-                    resetToPivotedTransform(
-                        pivotX = shapeWidth / 2F,
-                        pivotY = shapeHeight / 2F,
-                        rotationZ = 180F
-                    )
-                }.let(::transform)
+                inverted(pivotX = shapeWidth / 2F, pivotY = shapeHeight / 2F)
             }
         }
         return (outline.path - cutout).let(Outline::Generic)
     }
 }
+
+private fun Path.inverted(pivotX: Float, pivotY: Float): Path {
+    Matrix().apply {
+        resetToPivotedTransform(
+            pivotX = pivotX,
+            pivotY = pivotY,
+            rotationZ = 180F
+        )
+    }.let(::transform)
+    return this
+}
+
+private fun AxisModel<Float>.yOffsets(yMin: Float, yMax: Float): YOffsets {
+    val yZeroOffset = computeOffset(0F).coerceIn(0F, 1F)
+    val yMinOffset = computeOffset(yMin).coerceIn(0f, 1f)
+    val yMaxOffset = computeOffset(yMax).coerceIn(0f, 1f)
+    return YOffsets(
+        yZeroOffset = yZeroOffset,
+        yMinOffset = yMinOffset,
+        yMaxOffset = yMaxOffset
+    )
+}
+
+private data class YOffsets(
+    val yZeroOffset: Float,
+    val yMinOffset: Float,
+    val yMaxOffset: Float
+)
