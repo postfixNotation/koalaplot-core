@@ -136,67 +136,69 @@ public class ConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>>(
         val (yZeroOffset, yMinOffset, yMaxOffset) = yAxisModel.yOffsets(value.y.yMin, value.y.yMax)
 
         // Prevent division by zero
-        if (yMaxOffset == yMinOffset) return Path().let(Outline::Generic)
+        return if (yMaxOffset == yMinOffset) {
+            Path().let(Outline::Generic)
+        } else {
+            val heightOffsetRatio = size.height / (yMaxOffset - yMinOffset)
+            val offsetToHeight = { offset: Float -> offset * heightOffsetRatio }
 
-        val heightOffsetRatio = size.height / (yMaxOffset - yMinOffset)
-        val offsetToHeight = { offset: Float -> offset * heightOffsetRatio }
+            val yMinZeroOffset = yMinOffset - yZeroOffset
+            val yMaxZeroOffset = yMaxOffset - yZeroOffset
 
-        val yMinZeroOffset = yMinOffset - yZeroOffset
-        val yMaxZeroOffset = yMaxOffset - yZeroOffset
+            val yMinZeroHeight = offsetToHeight(yMinZeroOffset)
+            val yMaxZeroHeight = offsetToHeight(yMaxZeroOffset)
 
-        val yMinZeroHeight = offsetToHeight(yMinZeroOffset)
-        val yMaxZeroHeight = offsetToHeight(yMaxZeroOffset)
+            val yMinZeroArcHeight = max((arcRadius - yMinZeroHeight), 0F)
+            val yMaxZeroArcHeight = max((arcRadius - yMaxZeroHeight), 0F)
 
-        val yMinZeroArcHeight = max((arcRadius - yMinZeroHeight), 0F)
-        val yMaxZeroArcHeight = max((arcRadius - yMaxZeroHeight), 0F)
+            val yMaxZeroArcHeightDegrees =
+                asin(yMaxZeroArcHeight / arcRadius).rad.toDegrees().value.toFloat()
 
-        val yMaxZeroArcHeightDegrees =
-            asin(yMaxZeroArcHeight / arcRadius).rad.toDegrees().value.toFloat()
-
-        return Path().apply {
-            (
-                Path().apply {
-                    addArc(
-                        oval = Size(shapeWidth, shapeWidth).toRect(),
-                        startAngleDegrees = 180F + yMaxZeroArcHeightDegrees,
-                        sweepAngleDegrees = 180F - 2 * yMaxZeroArcHeightDegrees
-                    )
-                } - Path().apply {
-                    addArc(
-                        oval = Rect(
-                            offset = Offset(0F, shapeHeight),
-                            size = Size(shapeWidth, shapeWidth)
-                        ),
-                        startAngleDegrees = 180F,
-                        sweepAngleDegrees = 180F
-                    )
-                }
-                ).let(::addPath)
-
-            (
-                Path().apply {
-                    addRect(
-                        rect = Rect(
-                            offset = Offset(0F, arcRadius),
-                            size = Size(shapeWidth, max(shapeHeight - yMinZeroArcHeight, 0F))
+            Path().apply {
+                (
+                    Path().apply {
+                        addArc(
+                            oval = Size(shapeWidth, shapeWidth).toRect(),
+                            startAngleDegrees = 180F + yMaxZeroArcHeightDegrees,
+                            sweepAngleDegrees = 180F - 2 * yMaxZeroArcHeightDegrees
                         )
-                    )
-                } - Path().apply {
-                    addArc(
-                        oval = Rect(
-                            offset = Offset(0F, shapeHeight),
-                            size = Size(shapeWidth, shapeWidth)
-                        ),
-                        startAngleDegrees = 180F,
-                        sweepAngleDegrees = 180F
-                    )
+                    } - Path().apply {
+                        addArc(
+                            oval = Rect(
+                                offset = Offset(0F, shapeHeight),
+                                size = Size(shapeWidth, shapeWidth)
+                            ),
+                            startAngleDegrees = 180F,
+                            sweepAngleDegrees = 180F
+                        )
+                    }
+                    ).let(::addPath)
+
+                (
+                    Path().apply {
+                        addRect(
+                            rect = Rect(
+                                offset = Offset(0F, arcRadius),
+                                size = Size(shapeWidth, max(shapeHeight - yMinZeroArcHeight, 0F))
+                            )
+                        )
+                    } - Path().apply {
+                        addArc(
+                            oval = Rect(
+                                offset = Offset(0F, shapeHeight),
+                                size = Size(shapeWidth, shapeWidth)
+                            ),
+                            startAngleDegrees = 180F,
+                            sweepAngleDegrees = 180F
+                        )
+                    }
+                    ).let(::addPath)
+                // Rendering bar in negative direction
+                if (isInverted) {
+                    inverted(pivotX = shapeWidth / 2F, pivotY = shapeHeight / 2F)
                 }
-                ).let(::addPath)
-            // Rendering bar in negative direction
-            if (isInverted) {
-                inverted(pivotX = shapeWidth / 2F, pivotY = shapeHeight / 2F)
-            }
-        }.let(Outline::Generic)
+            }.let(Outline::Generic)
+        }
     }
 }
 
@@ -256,41 +258,43 @@ public class ConvexConcaveConvexShape<X, E : VerticalBarPlotEntry<X, Float>> pri
         val (yZeroOffset, yMinOffset, yMaxOffset) = yAxisModel.yOffsets(value.y.yMin, value.y.yMax)
 
         // Prevent division by zero
-        if (yMaxOffset == yMinOffset) return Path().let(Outline::Generic)
+        return if (yMaxOffset == yMinOffset) {
+            Path().let(Outline::Generic)
+        } else {
+            val heightOffsetRatio = size.height / (yMaxOffset - yMinOffset)
+            val offsetToHeight = { offset: Float -> offset * heightOffsetRatio }
 
-        val heightOffsetRatio = size.height / (yMaxOffset - yMinOffset)
-        val offsetToHeight = { offset: Float -> offset * heightOffsetRatio }
+            val yMaxZeroOffset = yMaxOffset - yZeroOffset
+            val yMaxZeroHeight = offsetToHeight(yMaxZeroOffset)
 
-        val yMaxZeroOffset = yMaxOffset - yZeroOffset
-        val yMaxZeroHeight = offsetToHeight(yMaxZeroOffset)
+            val outline = concaveConvexShape.createOutline(size, layoutDirection, density) as Outline.Generic
 
-        val outline = concaveConvexShape.createOutline(size, layoutDirection, density) as Outline.Generic
-
-        val cutoutRect = Path().apply {
-            addRect(
-                rect = Rect(
-                    offset = Offset(0F, yMaxZeroHeight - arcRadius),
-                    size = Size(shapeWidth, shapeWidth)
+            val cutoutRect = Path().apply {
+                addRect(
+                    rect = Rect(
+                        offset = Offset(0F, yMaxZeroHeight - arcRadius),
+                        size = Size(shapeWidth, shapeWidth)
+                    )
                 )
-            )
-        }
-        val cutoutArc = Path().apply {
-            addArc(
-                oval = Rect(
-                    offset = Offset(0F, yMaxZeroHeight - shapeWidth),
-                    size = Size(shapeWidth, shapeWidth)
-                ),
-                startAngleDegrees = 0F,
-                sweepAngleDegrees = 180F
-            )
-        }
-        val cutout = (cutoutRect - cutoutArc).apply {
-            // Rendering bar in negative direction
-            if (isInverted) {
-                inverted(pivotX = shapeWidth / 2F, pivotY = shapeHeight / 2F)
             }
+            val cutoutArc = Path().apply {
+                addArc(
+                    oval = Rect(
+                        offset = Offset(0F, yMaxZeroHeight - shapeWidth),
+                        size = Size(shapeWidth, shapeWidth)
+                    ),
+                    startAngleDegrees = 0F,
+                    sweepAngleDegrees = 180F
+                )
+            }
+            val cutout = (cutoutRect - cutoutArc).apply {
+                // Rendering bar in negative direction
+                if (isInverted) {
+                    inverted(pivotX = shapeWidth / 2F, pivotY = shapeHeight / 2F)
+                }
+            }
+            (outline.path - cutout).let(Outline::Generic)
         }
-        return (outline.path - cutout).let(Outline::Generic)
     }
 }
 
